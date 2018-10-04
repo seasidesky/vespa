@@ -24,9 +24,16 @@ public class FileSync {
     private final UnixPath path;
     private final FileContentCache contentCache;
 
+    private Runnable preModificationCallback;
+
     public FileSync(Path path) {
         this.path = new UnixPath(path);
         this.contentCache = new FileContentCache(this.path);
+    }
+
+    public FileSync withPreModificationCallback(Runnable callback) {
+        this.preModificationCallback = callback;
+        return this;
     }
 
     /**
@@ -40,6 +47,9 @@ public class FileSync {
         boolean modifiedSystem = maybeUpdateContent(taskContext, partialFileData.getContent(), currentAttributes);
 
         AttributeSync attributeSync = new AttributeSync(path.toPath()).with(partialFileData);
+        if (!modifiedSystem)
+            attributeSync.withPreModificationCallback(preModificationCallback);
+
         modifiedSystem |= attributeSync.converge(taskContext, currentAttributes);
 
         return modifiedSystem;
@@ -53,6 +63,7 @@ public class FileSync {
         }
 
         if (!currentAttributes.exists()) {
+            preModificationCallback.run();
             taskContext.recordSystemModification(logger, "Creating file " + path);
             path.createParents();
             path.writeBytes(content.get());
@@ -63,6 +74,7 @@ public class FileSync {
         if (Arrays.equals(content.get(), contentCache.get(currentAttributes.get().lastModifiedTime()))) {
             return false;
         } else {
+            preModificationCallback.run();
             taskContext.recordSystemModification(logger, "Patching file " + path);
             path.writeBytes(content.get());
             contentCache.updateWith(content.get(), currentAttributes.forceGet().lastModifiedTime());

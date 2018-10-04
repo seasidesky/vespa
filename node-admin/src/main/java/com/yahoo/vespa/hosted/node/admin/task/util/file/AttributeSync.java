@@ -26,6 +26,7 @@ public class AttributeSync {
     private Optional<String> owner = Optional.empty();
     private Optional<String> group = Optional.empty();
     private Optional<String> permissions = Optional.empty();
+    private Runnable preModificationCallback = () -> {};
 
     public AttributeSync(Path path) {
         this.path = new UnixPath(path);
@@ -55,6 +56,11 @@ public class AttributeSync {
 
     public AttributeSync withGroup(String group) {
         this.group = Optional.of(group);
+        return this;
+    }
+
+    public AttributeSync withPreModificationCallback(Runnable callback) {
+        this.preModificationCallback = new RunnableOnce(callback);
         return this;
     }
 
@@ -111,6 +117,7 @@ public class AttributeSync {
             return false;
         }
 
+        preModificationCallback.run();
         context.recordSystemModification(
                 logger,
                 String.format("Changing %s of %s from %s to %s",
@@ -122,5 +129,24 @@ public class AttributeSync {
         valueSetter.accept(wantedValue.get());
 
         return true;
+    }
+
+    private class RunnableOnce implements Runnable {
+        private final Runnable runnable;
+        private boolean hasRun = false;
+
+        private RunnableOnce(Runnable runnable) {
+            this.runnable = runnable;
+        }
+
+        public void run() {
+            if (hasRun) return;
+            hasRun = true;
+            runnable.run();
+        }
+
+        public void reset() {
+            hasRun = false;
+        }
     }
 }
