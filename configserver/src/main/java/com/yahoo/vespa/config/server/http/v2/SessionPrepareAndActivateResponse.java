@@ -6,6 +6,7 @@ import com.yahoo.config.provision.TenantName;
 import com.yahoo.config.provision.Zone;
 import com.yahoo.container.jdisc.HttpRequest;
 import com.yahoo.slime.Slime;
+import com.yahoo.vespa.config.server.PrepareResult;
 import com.yahoo.vespa.config.server.configchange.ConfigChangeActions;
 import com.yahoo.vespa.config.server.configchange.ConfigChangeActionsSlimeConverter;
 import com.yahoo.vespa.config.server.http.SessionResponse;

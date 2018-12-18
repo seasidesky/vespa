@@ -40,7 +40,6 @@ import com.yahoo.vespa.config.server.deploy.Deployment;
 import com.yahoo.vespa.config.server.http.CompressedApplicationInputStream;
 import com.yahoo.vespa.config.server.http.LogRetriever;
 import com.yahoo.vespa.config.server.http.SimpleHttpFetcher;
-import com.yahoo.vespa.config.server.http.v2.PrepareResult;
 import com.yahoo.vespa.config.server.provision.HostProvisionerProvider;
 import com.yahoo.vespa.config.server.session.LocalSession;
 import com.yahoo.vespa.config.server.session.LocalSessionRepo;
@@ -81,8 +80,6 @@ import static java.nio.file.Files.readAttributes;
  *
  * @author bratseth
  */
-// TODO: Move logic for dealing with applications here from the HTTP layer and make this the persistent component
-//       owning the rest of the state
 public class ApplicationRepository implements com.yahoo.config.provision.Deployer {
 
     private static final Logger log = Logger.getLogger(ApplicationRepository.class.getName());

@@ -22,7 +22,6 @@ import com.yahoo.text.Utf8;
 import com.yahoo.vespa.config.server.application.OrchestratorMock;
 import com.yahoo.vespa.config.server.deploy.DeployTester;
 import com.yahoo.vespa.config.server.http.SessionHandlerTest;
-import com.yahoo.vespa.config.server.http.v2.PrepareResult;
 import com.yahoo.vespa.config.server.session.LocalSession;
 import com.yahoo.vespa.config.server.session.PrepareParams;
 import com.yahoo.vespa.config.server.tenant.Tenant;

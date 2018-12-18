@@ -22,7 +22,7 @@ import com.yahoo.test.ManualClock;
 
 import com.yahoo.vespa.config.server.configchange.MockRestartAction;
 import com.yahoo.vespa.config.server.configchange.RestartActions;
-import com.yahoo.vespa.config.server.http.v2.PrepareResult;
+import com.yahoo.vespa.config.server.PrepareResult;
 import com.yahoo.vespa.config.server.model.TestModelFactory;
 import com.yahoo.vespa.config.server.session.LocalSession;
 import org.junit.Test;
