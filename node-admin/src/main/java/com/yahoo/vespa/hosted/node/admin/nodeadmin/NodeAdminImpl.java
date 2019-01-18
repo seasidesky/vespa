@@ -7,7 +7,6 @@ import com.yahoo.vespa.hosted.dockerapi.metrics.Dimensions;
 import com.yahoo.vespa.hosted.dockerapi.metrics.GaugeWrapper;
 import com.yahoo.vespa.hosted.dockerapi.metrics.MetricReceiverWrapper;
 import com.yahoo.vespa.hosted.node.admin.configserver.noderepository.NodeSpec;
-import com.yahoo.vespa.hosted.node.admin.maintenance.acl.AclMaintainer;
 import com.yahoo.vespa.hosted.node.admin.nodeagent.NodeAgent;
 import com.yahoo.vespa.hosted.node.admin.nodeagent.NodeAgentContext;
 import com.yahoo.vespa.hosted.node.admin.nodeagent.NodeAgentContextFactory;
@@ -22,7 +21,6 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -39,14 +37,11 @@ public class NodeAdminImpl implements NodeAdmin {
     private static final PrefixLogger logger = PrefixLogger.getNodeAdminLogger(NodeAdmin.class);
     private static final Duration NODE_AGENT_FREEZE_TIMEOUT = Duration.ofSeconds(5);
 
-    private final ScheduledExecutorService aclScheduler =
-            Executors.newScheduledThreadPool(1, ThreadFactoryFactory.getDaemonThreadFactory("aclscheduler"));
     private final ScheduledExecutorService metricsScheduler =
             Executors.newScheduledThreadPool(1, ThreadFactoryFactory.getDaemonThreadFactory("metricsscheduler"));
 
     private final NodeAgentWithSchedulerFactory nodeAgentWithSchedulerFactory;
     private final NodeAgentContextFactory nodeAgentContextFactory;
-    private final Optional<AclMaintainer> aclMaintainer;
 
     private final Clock clock;
     private boolean previousWantFrozen;
@@ -60,21 +55,18 @@ public class NodeAdminImpl implements NodeAdmin {
 
     public NodeAdminImpl(NodeAgentFactory nodeAgentFactory,
                          NodeAgentContextFactory nodeAgentContextFactory,
-                         Optional<AclMaintainer> aclMaintainer,
                          MetricReceiverWrapper metricReceiver,
                          Clock clock) {
         this((NodeAgentWithSchedulerFactory) nodeAgentContext -> create(clock, nodeAgentFactory, nodeAgentContext),
-                nodeAgentContextFactory, aclMaintainer, metricReceiver, clock);
+                nodeAgentContextFactory, metricReceiver, clock);
     }
 
     NodeAdminImpl(NodeAgentWithSchedulerFactory nodeAgentWithSchedulerFactory,
                   NodeAgentContextFactory nodeAgentContextFactory,
-                  Optional<AclMaintainer> aclMaintainer,
                   MetricReceiverWrapper metricReceiver,
                   Clock clock) {
         this.nodeAgentWithSchedulerFactory = nodeAgentWithSchedulerFactory;
         this.nodeAgentContextFactory = nodeAgentContextFactory;
-        this.aclMaintainer = aclMaintainer;
 
         this.clock = clock;
         this.previousWantFrozen = true;
@@ -181,19 +173,11 @@ public class NodeAdminImpl implements NodeAdmin {
                 logger.warning("Metric fetcher scheduler failed", e);
             }
         }, 10, 55, TimeUnit.SECONDS);
-
-        aclMaintainer.ifPresent(maintainer -> {
-            int delay = 120; // WARNING: Reducing this will increase the load on config servers.
-            aclScheduler.scheduleWithFixedDelay(() -> {
-                if (!isFrozen()) maintainer.converge();
-            }, 30, delay, TimeUnit.SECONDS);
-        });
     }
 
     @Override
     public void stop() {
         metricsScheduler.shutdown();
-        aclScheduler.shutdown();
 
         // Stop all node-agents in parallel, will block until the last NodeAgent is stopped
         nodeAgentWithSchedulerByHostname.values().parallelStream().forEach(NodeAgent::stop);
@@ -201,11 +185,10 @@ public class NodeAdminImpl implements NodeAdmin {
         do {
             try {
                 metricsScheduler.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                aclScheduler.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
             } catch (InterruptedException e) {
-                logger.info("Was interrupted while waiting for metricsScheduler and aclScheduler to shutdown");
+                logger.info("Was interrupted while waiting for metricsScheduler to shutdown");
             }
-        } while (!metricsScheduler.isTerminated() || !aclScheduler.isTerminated());
+        } while (!metricsScheduler.isTerminated());
     }
 
     // Set-difference. Returns minuend minus subtrahend.
