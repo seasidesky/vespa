@@ -457,11 +457,11 @@ public class NodeAgentImpl implements NodeAgent {
                     containerState = STARTING;
                     startContainer(context);
                     containerState = UNKNOWN;
-                    aclMaintainer.ifPresent(AclMaintainer::converge);
                 } else {
                     updateContainerIfNeeded(context, container.get());
                 }
 
+                aclMaintainer.ifPresent(maintainer -> maintainer.converge(context));
                 startServicesIfNeeded(context);
                 resumeNodeIfNeeded(context);
                 healthChecker.ifPresent(checker -> checker.verifyHealth(context));
